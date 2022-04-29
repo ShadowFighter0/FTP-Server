@@ -3,19 +3,70 @@ package ServerPackage;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
-public class ConnectionHandler 
+public class SubConnection
 {
-
-	public static void ReceiveFileFromClient(BufferedReader mainSocketReader, PrintWriter mainSocketWritter, int port) throws Exception
+	//SERVER
+	ServerSocket sServ;
+	Socket socket;
+	
+	BufferedReader socketReader;
+	PrintWriter socketWritter;
+	
+	public boolean Connected = false;
+	
+	public boolean StartPasiveSubConnection (String port)
 	{
-		//Send the client the new port for the sub connection
-		System.out.println("Sending Port " + port + " to client");
+		try {
+			sServ = new ServerSocket(Integer.parseInt(port));
+			//Wait until the server connects
+			socket = sServ.accept();
+			
+			//Create reader and writter
+			socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			socketWritter = new PrintWriter(socket.getOutputStream(), true);
 		
+			Connected = true;
+		}
+		catch (Exception e) {
+			System.out.println("Something went wrong creating the sub connection.");
+			Connected = false;
+		}
+		
+		return Connected;
+	}
+	
+	
+	public boolean ConnectActiveSubConnection (String port)
+	{
+		try
+		{
+			//Connect to the provide port
+			socket = new Socket("localhost", Integer.parseInt(port));
+			
+			//Create reader and writter
+			socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			socketWritter = new PrintWriter(socket.getOutputStream(), true);
+			
+			Connected = true;
+		}
+		catch (Exception e) {
+			System.out.println("Something went wrong creating the sub connection.");
+			Connected = false;
+		}
+		
+		return Connected;
+	}
+	
+
+	public void ReceiveFileFromClient(BufferedReader mainSocketReader, PrintWriter mainSocketWritter, int port) throws Exception
+	{		
 		mainSocketWritter.flush();
 		mainSocketWritter.println(""+port);
 		mainSocketWritter.flush();
@@ -73,9 +124,6 @@ public class ConnectionHandler
 		sServ.close();
 		sServ = null;
 		
-		
-		
-		
-		
+		Connected = false;
 	}
 }
