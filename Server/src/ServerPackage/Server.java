@@ -22,6 +22,7 @@ public class Server {
 		PrintWriter writter;
 		
 		String data = "";
+		String path = "D:\\Redes\\Server";
 		
 		try {
 
@@ -52,7 +53,7 @@ public class Server {
 
 					System.out.println("Server receives: " + data);
 
-					//CommandSelector(data, subConnection, writter);
+					CommandSelector(data, subConnection, writter, path);
 
 				}
 				//Close the socket
@@ -72,7 +73,7 @@ public class Server {
 		}
 	}
 
-	private static void CommandSelector(String commandStr, SubConnection subConnection, PrintWriter writter) 
+	private static void CommandSelector(String commandStr, SubConnection subConnection, PrintWriter writter, String path) 
 	{
 		
 		String[] command = commandStr.split(" ");
@@ -84,10 +85,10 @@ public class Server {
 				
 				if (!subConnection.Connected)
 				{				
-					if (subConnection.StartPasiveSubConnection(command[1]))
+					if (subConnection.ConnectActiveSubConnection(command[1]))
 					{
 						writter.println("200");
-						System.out.println("The subConnection has been created with Pasive Mode");
+						System.out.println("The subConnection has been created with Active Mode");
 					}
 					else
 					{
@@ -97,10 +98,21 @@ public class Server {
 				}
 				else	
 				{
-					writter.println("503"); //Command 
-					System.out.println("There is already a subConnection running");
+					writter.println("503"); //Command
+					System.out.println("SubConnection already running");
 				}
-					
+
+				break;
+				
+			case "LIST":
+				
+				String message = ReadFolder(path, 0);
+				subConnection.socketWritter.println(message);
+				subConnection.socketWritter.println("END");
+				break;
+				
+			case "PASV":
+				
 				break;
 				
 			case "STOR": //Store a file
@@ -113,8 +125,7 @@ public class Server {
 					//subConnection.ReceiveFileFromClient(reader, writter);
 			
 				} catch (Exception e) {
-					System.out.println("Something go wrong");
-					e.printStackTrace();
+					System.out.println("Something went wrong");					
 				}	
 				
 				
@@ -127,10 +138,37 @@ public class Server {
 				break;
 	
 			default:
-				writter.println("unknown");
+				writter.println("Unknown");
 				System.out.println("Didn't understand the command");
 				break;
 		}
+	}
+	
+	private static String ReadFolder(String path, int deepLevel)
+	{
+		String message = "";
+		
+		File folder = new File(path);
+		
+		for (File file : folder.listFiles()) 
+		{
+			for(int i = 0; i < deepLevel; i++)
+			{
+				message += "  ";
+			}
+			
+			if (file.isDirectory())
+			{
+				message += "Folder " + ReadFolder(file.getPath(), deepLevel+1);
+			}
+			else
+			{
+				message += file.getName() + "\n";
+			}
+		}
+		
+		return message;
+		
 	}
 
 }

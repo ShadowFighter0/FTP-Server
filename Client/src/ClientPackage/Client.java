@@ -39,6 +39,7 @@ public class Client {
 			inputKeyboard = new BufferedReader(new InputStreamReader(System.in));			
 
 			//Create SubConnection
+
 			subConnection = new SubConnection();
 
 			data = reader.readLine();
@@ -56,22 +57,23 @@ public class Client {
 				
 				data = inputKeyboard.readLine();			
 				
-				//String[] command = data.split(" ");
-				//command[0] = command[0].toUpperCase();
+				String[] command = data.split(" ");
+				command[0] = command[0].toUpperCase();
 				
 				//Command Security
-				//if (CommandChecker(command, subConnection))
-				//{
+				if (CommandChecker(command, subConnection))
+				{
 					// Send data to the server
-					
+					writter.println(data);
 									
 					//Apply the command
-					//CommandSelector(command,subConnection, reader);
-					
-				//}
+					CommandSelector(command,subConnection, reader);
+				}
 			}
+			
 			// Close the connection
 			sCon.close();
+			
 		} catch (Exception e) {
 			System.out.println("Error: " + e);
 			e.printStackTrace();
@@ -126,6 +128,18 @@ public class Client {
 				
 				return true;
 				
+				
+			case "LIST":
+				
+				if (!subConnection.Connected)
+				{
+					System.out.println("There is no sub Connection created.");
+					return false;
+				}
+				
+				return true;
+				
+				
 			case "STOR":
 				
 				return true;
@@ -165,6 +179,36 @@ public class Client {
 			{
 				System.out.println("Something went wrong");
 			}
+			
+			break;
+			
+		case "LIST":
+			
+			String message;
+			try {
+
+				while (true) 
+				{
+					message = subConnection.socketReader.readLine();
+					
+					if (message.equals("END")) 
+					{
+						break;
+					} 
+					else
+					{
+						System.out.println(message);
+					}
+				}
+			}
+			catch (IOException e1) 
+			{
+				e1.printStackTrace();
+			}
+			
+			break;
+			
+		case "PASV":
 			
 			break;
 

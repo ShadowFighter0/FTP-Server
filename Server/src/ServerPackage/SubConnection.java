@@ -21,9 +21,11 @@ public class SubConnection
 	
 	public boolean Connected = false;
 	
+	
 	public boolean StartPasiveSubConnection (String port)
 	{
 		try {
+			
 			sServ = new ServerSocket(Integer.parseInt(port));
 			//Wait until the server connects
 			socket = sServ.accept();
@@ -36,6 +38,7 @@ public class SubConnection
 		}
 		catch (Exception e) {
 			System.out.println("Something went wrong creating the sub connection.");
+			e.printStackTrace();
 			Connected = false;
 		}
 		
