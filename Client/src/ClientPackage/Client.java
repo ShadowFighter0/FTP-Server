@@ -3,35 +3,33 @@ package ClientPackage;
 import java.io.*;
 import java.net.*;
 
+import ClientPackage.Settings.connectionMode;
+
 public class Client {
+
+	static boolean end = false;
+	static Settings settings;
+	
+	static BufferedReader reader;
+	static PrintWriter writter;
+			// From the keyboard
+	static BufferedReader inputKeyboard;
+	static SubConnection subConnection;
 
 	public static void main(String args[]) 
 	{
-		
-		boolean end = false;
-		int port = 21;
-
 		Socket sCon = null;
-		
-		// From the socket
-		BufferedReader reader;
-		PrintWriter writter;
-
-		// From the keyboard
-		BufferedReader inputKeyboard;
-		
-		
-		SubConnection subConnection;
-		
 		
 		System.out.println("CLIENT");
 
+		settings = new Settings();
+		
 		String data;
 
 		try {
 			
 			//Wait for a server 
-			sCon = WaitForConnection(port);
+			sCon = WaitForConnection(settings.getPort());
 
 			//Create writters and readers
 			reader = new BufferedReader(new InputStreamReader(sCon.getInputStream()));
@@ -39,12 +37,9 @@ public class Client {
 			inputKeyboard = new BufferedReader(new InputStreamReader(System.in));			
 
 			//Create SubConnection
-
 			subConnection = new SubConnection();
 
-			data = reader.readLine();
-			
-			if (data.contains("220")) //220 -> Ok 
+			if (reader.readLine().contains("220")) //220 -> Ok 
 			{
 				System.out.println("Conection Success");
 			}
@@ -52,32 +47,36 @@ public class Client {
 			// Get the input/output from the socket
 			while (!end) 
 			{
-				// Get command from the keyboard
-				System.out.print("Write command (END to close the server): ");
-				
-				data = inputKeyboard.readLine();			
-				
-				String[] command = data.split(" ");
-				command[0] = command[0].toUpperCase();
-				
-				//Command Security
-				if (CommandChecker(command, subConnection))
+				try {
+					// Get command from the keyboard
+					System.out.print("Write command (END to close the server): ");
+					data = inputKeyboard.readLine();			
+					
+					String[] command = data.split(" ");
+					command[0] = command[0].toUpperCase();
+					
+					//Command Security
+					if (CommandChecker(command, subConnection))
+					{
+						// Send data to the server
+						writter.println(data);
+										
+						//Apply the command
+						CommandSelector(command,subConnection);
+					}
+				}
+				catch(Exception e)
 				{
-					// Send data to the server
-					writter.println(data);
-									
-					//Apply the command
-					CommandSelector(command,subConnection, reader);
+					System.out.println("Something failed in the command");
 				}
 			}
 			
 			// Close the connection
 			sCon.close();
 			
-		} catch (Exception e) {
-			System.out.println("Error: " + e);
-			e.printStackTrace();
-		}
+			System.out.println("Shutting down the client");
+			
+		} catch (Exception e) {		}
 	}
 	
 	private static Socket WaitForConnection(int port) throws InterruptedException
@@ -87,14 +86,13 @@ public class Client {
 			try 
 			{
 				// Connect to the server
-				return new Socket("localhost", port);
-				
+				return new Socket("localhost", port);				
 
 			} catch (Exception e) {
 
 				// Error in connection. Trying again
 				System.out.println("Server not found. Trying again in 2 secs.");
-				Thread.sleep(2000);
+				Thread.sleep(1000);
 			}
 		}
 	}
@@ -103,7 +101,7 @@ public class Client {
 	{
 		switch (command[0])
 		{
-			case "PORT":
+			case "CONN":
 				
 				if (subConnection.Connected)
 				{
@@ -120,20 +118,19 @@ public class Client {
 				try 
 				{
 					Integer.parseInt(command[1]);
+					return true;
 				}
 				catch (Exception e) {
 					System.out.println("Wrong Command Format: Port is not a number");
 					return false;
 				}
 				
-				return true;
-				
 				
 			case "LIST":
 				
-				if (!subConnection.Connected)
+				if (command.length > 2)
 				{
-					System.out.println("There is no sub Connection created.");
+					System.out.println("Wrong Command Format: ");
 					return false;
 				}
 				
@@ -142,37 +139,117 @@ public class Client {
 				
 			case "STOR":
 				
+				if (command.length < 2)
+					return false;
+				
+				try {
+					File file  = new File(command[1]);
+					
+					if(!file.isFile())
+					{
+						System.out.println("The File does not exist");
+						return false;
+					}
+					return true;
+					
+				}catch (Exception e)
+				{
+					
+					System.out.println("The File does not exist");
+					return false;
+				}
+				
+			case "RETR":
+				
+				if (command.length != 2)
+					return false;
+
 				return true;
-			case "END":
+				
+			case "PASV":
+				
+				if (subConnection.Connected)
+				{
+					System.out.println("There is already a subconnection running");
+					return false;
+				}
+				
+				return true;
+			case "PWD":
+				
+				return true;
+				
+			case "CWD":
+				
+				if (command.length != 2)	return false;
+				
+				return true;
+				
+			case "CD":
+				return true;
+			
+				
+			case "USER":
+				
+				if(command.length != 2) return false;
+				
+				return true;
+				
+			case "MKD":
+				
+				if(command.length != 2) return false;
+				
+				return true;
+				
+			case "DELE":
+				
+				if(command.length != 2) return false;
+				
+				return true;
+				
+			case "RMD":
+				if(command.length != 2) return false;
+				
+				return true;
+				
+			case "RNFR":
+				if(command.length != 2) return false;
+				
+				return true;
+				
+				
+			case "QUIT":
 				
 				return true;
 
 				
 			default: 
+				System.out.println("No command detected. Please try again");
 				return false;
 		}
 	}
 
-	private static void CommandSelector(String[] command, SubConnection subConnection, BufferedReader reader) 
+	private static void CommandSelector(String[] command, SubConnection subConnection) throws IOException 
 	{
+		String message;
+		
 		switch (command[0]) {
 		
-		case "PORT":
+		case "CONN":
 			
 			try {
 				// Start connection
 				subConnection.StartActiveSubConnection(command[1]);
 				
-				Thread.sleep(100);
-				String data = reader.readLine();
+				message = reader.readLine();
 				
 				// Get server response
-				if (data.equals("200"))
-					System.out.println("200 -> SubConnection Running");
-				else if (data.equals("503"))
-					System.out.println("503 -> SubConnection Error");
+				if (message.equals("200"))
+					System.out.println("SubConnection Running");
+				else if (message.equals("503"))
+					System.out.println("SubConnection Error");
 				else
-					System.out.println(data + " -> Non recognise code");
+					System.out.println(message + " -> Non recognise code");
 				
 				
 			}catch (Exception e)
@@ -184,38 +261,70 @@ public class Client {
 			
 		case "LIST":
 			
-			String message;
 			try {
-
-				while (true) 
+				message = reader.readLine();
+				if (message.contains("550"))
 				{
-					message = subConnection.socketReader.readLine();
+					System.out.println("Error: File unavailable");
+					return;
+				}
+				else if (message.contains("450"))
+				{
+					System.out.println("Error: Requested file action not taken");
+					return;
+				}
+				else if (message.contains("150"))
+				{
+					System.out.println("File status okay");
+					AutoConnect(subConnection);
+
+					message = reader.readLine();
+					if (message.contains("425"))
+					{
+						System.out.println("Error: Can't open data connection");
+						return;
+					}
+					else if (message.contains("451"))
+					{
+						System.out.println("Error: Requested action aborted");
+						return;
+					}
 					
-					if (message.equals("END")) 
+					subConnection.ReceiveList();
+					
+					if(reader.readLine().contains("226"))
 					{
-						break;
-					} 
-					else
-					{
-						System.out.println(message);
+						System.out.println("Requested action successful");
 					}
 				}
 			}
-			catch (IOException e1) 
-			{
-				e1.printStackTrace();
-			}
+			catch (IOException e1){			}
 			
 			break;
 			
 		case "PASV":
 			
+				message = reader.readLine();
+				subConnection.ConnectPasiveSubConnection(message);
+				
+				if (reader.readLine().equals("227"))
+					System.out.println("Connection created with pasive mode");
+
 			break;
 
 		case "STOR":
 
 			try {
-				//SendFileToServer(inputKeyboard, reader);
+				
+				AutoConnect(subConnection);
+				
+				
+				subConnection.SendFileToServer(command[1]);
+				if(reader.readLine().contains("200"))
+				{
+					System.out.println("Transfer completed");
+				}
+				
 			} catch (Exception e) {
 				System.out.println("Something has gone wrong");
 				e.printStackTrace();
@@ -223,81 +332,234 @@ public class Client {
 
 			break;
 			
-		case "END":
+		case "RETR":
 			
-				//end = true;
+				message = reader.readLine();
+				
+				if (message.contains("550"))
+				{
+					System.out.println("File unavailable");
+					return;
+				}
+				else if(message.contains("150"))
+				{
+					System.out.println("File status okay");
+				}
+				
+				AutoConnect(subConnection);
+
+				message = reader.readLine();
+				
+				if (message.contains("425"))
+				{
+					System.out.println("Can't open data connection");
+					return;
+				}
+				else if (message.contains("451"))
+				{
+					System.out.println("Requested action aborted");
+					return;
+				}
+				
+				try {
+					subConnection.ReceiveFileFromServer();
+					
+					message = reader.readLine();
+					
+					if (message.contains("226"))
+					{
+						System.out.println("Requested action successful");
+						return;
+					}
+					else if (message.contains("450")) 
+					{
+						
+					}
+				}
+				catch (Exception e)
+				{
+					
+				}				
 			
+			break;
+			
+		case "PWD":
+			
+			try {
+				
+				System.out.println(reader.readLine());
+			
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			break;
+			
+		case "CWD":
+			try {
+				
+				message = reader.readLine();
+				
+				if(message.equals("250"))
+				{
+					System.out.println("Path changed correctly");
+				}
+				else if(message.equals("550"))
+				{
+					System.out.println("Fail changing the path");
+				}
+				
+			} catch (IOException e1) {			}	
+				
+			break;
+			
+		case "CD":
+				message = reader.readLine();
+				if(message.equals("250"))
+				{
+					System.out.println("Path changed correctly");
+				}
+				else if(message.equals("550"))
+				{
+					System.out.println("You are currently in the root folder");
+				}
+			break;
+			
+		case "USER":
+			
+			try {
+				if(reader.readLine().contains("331"))
+				{
+					System.out.println("Please entre the password (PASS + password)");
+					String passwordCommand = inputKeyboard.readLine();
+					
+					writter.println(passwordCommand);
+					message = reader.readLine();
+					if ( message.contains("230"))
+					{
+						System.out.println("You are now logged");
+					}
+					else if(message.contains("530"))
+					{
+						System.out.println("Log in error. Please try again");
+					}
+				}
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			break;
+			
+		case "MKD":
+			
+			try {
+				message = reader.readLine();
+				
+				if (message.contains("257")) 
+				{
+					System.out.println("Folder created");
+				}
+				else
+				{
+					System.out.println("Error creating folder");
+				}
+				
+			} catch (IOException e1) {
+				System.out.println("Error creating a folder.");
+			}
+			
+			break;
+			
+		case "DELE":
+			
+			try {
+				message = reader.readLine();
+				
+				if (message.contains("250")) 
+				{
+					System.out.println("File removed");
+				}
+				else
+				{
+					System.out.println("Error removing file");
+				}
+				
+			} catch (IOException e1) {
+				System.out.println("Error removing file.");
+			}
+			
+			break;
+			
+		case "RNFR":
+			
+			try {
+				message = reader.readLine();
+				if (message.contains("350"))
+				{
+					System.out.println("Please introduce the new name (RNTO + Name)");
+					String code = inputKeyboard.readLine();
+					writter.println(code);
+					
+					message = reader.readLine();
+					
+					if(message.contains("250"))
+					{
+						System.out.println("Rename file action succed");
+					}
+					else
+					{
+						System.out.println("Error Rename file");
+					}
+				}
+				else
+				{
+					System.out.println("Error renaming the file");
+				}
+			}catch(Exception e)
+			{
+				
+			}
+			
+			break;
+			
+		case "QUIT":
+			try {
+				String code = reader.readLine();
+				
+				if (code.equals("221"))
+				{
+					System.out.println("Ending connection with server");
+
+					end = true;
+				}
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			break;
 				
 		default:
 			System.out.println("Not implented yet");
 		}
 	}
-
-	private static void SendFileToServer(BufferedReader inputKeyboard, BufferedReader mainSocketReader)
-			throws Exception {
-
-		System.out.println("Enter the path:");
-
-		String path = inputKeyboard.readLine();
-
-		int port = Integer.parseInt(mainSocketReader.readLine());
-
-		Socket sCon = new Socket("localhost", port);
-		System.out.println("Connected to new Port: " + port);
-
-		BufferedReader socketReader = new BufferedReader(new InputStreamReader(sCon.getInputStream()));
-		PrintWriter socketWritter = new PrintWriter(sCon.getOutputStream(), true);
-
-		// Create File and array
-		File file = new File(path);
-		byte[] bytes = new byte[(int) file.length()];
-
-		// Convert a File into byte[]
-		FileInputStream fileConverter = new FileInputStream(file);
-		System.out.println(fileConverter.read(bytes, 0, bytes.length));
-
-		// Create printer for bytes into the socket
-		DataOutputStream bytePrinter = new DataOutputStream(sCon.getOutputStream());
-
-		// Send the filename
-		socketWritter.flush();
-		socketWritter.println(file.getName());
-
-		// Send length
-		socketWritter.flush();
-		socketWritter.println(bytes.length);
-
-		// Send bytes
-		Thread.sleep(100);
-
-		System.out.println("Sending Bytes");
-		bytePrinter.flush();
-		bytePrinter.write(bytes);
-
-		System.out.println("Upload Complete. Waiting for server confirmation");
-
-		String data = mainSocketReader.readLine();
-
-		if (data.equals("OK"))
-			System.out.println("Transfer Status: Ok");
-		else
-			System.out.println("Transfer Status: Error");
-
-		fileConverter.close();
-		fileConverter = null;
-
-		bytePrinter.close();
-		bytePrinter = null;
-
-		socketReader.close();
-		socketReader = null;
-
-		socketWritter.close();
-		socketWritter = null;
-
-		sCon.close();
-		sCon = null;
+	
+	private static void AutoConnect(SubConnection subConnection) throws IOException
+	{
+		if (!subConnection.Connected)
+		{
+			if (settings.getConnectionMode() == connectionMode.Pasive)
+			{
+				subConnection.ConnectPasiveSubConnection(reader.readLine());
+			}
+			else
+			{
+				writter.flush();
+				writter.println(settings.getSubConnectionPort());
+				subConnection.StartActiveSubConnection(""+settings.getSubConnectionPort());
+			}
+		}
 	}
-
 }

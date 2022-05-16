@@ -2,13 +2,15 @@ package ServerPackage;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 public class SubConnection
 {
@@ -20,14 +22,14 @@ public class SubConnection
 	PrintWriter socketWritter;
 	
 	public boolean Connected = false;
-	
-	
-	public boolean StartPasiveSubConnection (String port)
+
+		
+	public boolean StartPasiveSubConnection (int port)
 	{
 		try {
 			
-			sServ = new ServerSocket(Integer.parseInt(port));
 			//Wait until the server connects
+			sServ = new ServerSocket(port);
 			socket = sServ.accept();
 			
 			//Create reader and writter
@@ -67,22 +69,78 @@ public class SubConnection
 		return Connected;
 	}
 	
-
-	public void ReceiveFileFromClient(BufferedReader mainSocketReader, PrintWriter mainSocketWritter, int port) throws Exception
-	{		
-		mainSocketWritter.flush();
-		mainSocketWritter.println(""+port);
-		mainSocketWritter.flush();
-				
-		//Create socket
-	    ServerSocket sServ = new ServerSocket(port);
-		Socket socket = sServ.accept();
-		System.out.println("Connected to port " + port);
+	private void CloseConnection()
+	{
+		try {
+			socket.close();
+			socket = null;
 			
-		//Create Writters and readers
-		BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		PrintWriter socketWritter = new PrintWriter(socket.getOutputStream(), true);
+			socketReader.close();
+			socketReader = null;
+			
+			socketWritter.close();
+			socketWritter = null;
+			
+			if(sServ != null)
+			{
+				sServ.close();
+				sServ = null;
+			}		
+			
+			Connected = false;
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void SendListToClient(String path)
+	{		
+		socketWritter.println(ReadFolder(path, 0));
 		
+		socketWritter.println("END");
+		CloseConnection();
+	}
+	
+	private String ReadFolder(String path, int deepLevel)
+	{
+		String message = "";
+		
+		File folder = new File(path);
+		for (File file : folder.listFiles()) 
+		{
+			for(int i = 0; i < deepLevel; i++)
+			{
+				if ( i == deepLevel-1)
+				{
+					message += ">";					
+				}
+				else
+				{
+					message += " ";
+				}
+			}
+			
+			if (file.isDirectory())
+			{
+				message += file.getName() + "\n";
+				message += ReadFolder(file.getPath(), deepLevel+1);
+			}
+			else
+			{
+				message += file.getName() + "\n";
+			}
+			file = null;
+		}
+		folder = null;
+		return message;
+
+	}
+	
+
+	public void ReceiveFileFromClient(String path) throws IOException
+	{
 		//Read name file
 		System.out.print("Waiting for name file");
 		String nameFile = socketReader.readLine();
@@ -96,7 +154,9 @@ public class SubConnection
 		
 		//Create Handler 
 		DataInputStream byteReader = new DataInputStream(socket.getInputStream());
-		FileOutputStream byteToFileConverter = new FileOutputStream("D:\\Redes\\Server\\"+nameFile);  
+		FileOutputStream byteToFileConverter = new FileOutputStream(path+nameFile);  
+		
+		socketWritter.println("Ok");
 		
 		System.out.println("Waiting for bytes");
 	 	byteReader.read(bytes, 0, bytes.length);
@@ -106,8 +166,8 @@ public class SubConnection
 		byteToFileConverter.write(bytes);
 		System.out.println("File Created");
 		   
-		mainSocketWritter.flush();
-		mainSocketWritter.println("OK");
+		socketWritter.flush();
+		socketWritter.println("OK");
 		
 		byteReader.close();
 		byteReader = null;
@@ -115,18 +175,53 @@ public class SubConnection
 		byteToFileConverter.close();
 		byteToFileConverter = null;
 		
-		socketReader.close();
-		socketReader = null;
+		CloseConnection();
+	}
+	
+	public void SendFileToClient(String path) throws IOException
+	{
+		// Create File and array
+		File file = new File(path);
 		
-		socketWritter.close();
-		socketWritter = null;
+		byte[] bytes = new byte[(int) file.length()];
 
-		socket.close();
-		socket = null;
+		// Convert a File into byte[]
+		FileInputStream fileConverter = new FileInputStream(file);
+		System.out.println(fileConverter.read(bytes, 0, bytes.length));
 
-		sServ.close();
-		sServ = null;
+		// Create printer for bytes into the socket
+		DataOutputStream bytePrinter = new DataOutputStream(socket.getOutputStream());
+
+		// Send the filename
+		socketWritter.flush();
+		socketWritter.println(file.getName());
+
+		// Send length
+		socketWritter.flush();
+		socketWritter.println(bytes.length);
+
+		// Send bytes
+		socketReader.readLine();
+
+		System.out.println("Sending Bytes");
+		bytePrinter.flush();
+		bytePrinter.write(bytes);
+
+		System.out.println("Upload Complete. Waiting for client confirmation");
+
+		String data = socketReader.readLine();
+
+		if (data.equals("OK"))
+			System.out.println("Transfer Status: Ok");
+		else
+			System.out.println("Transfer Status: Error");
+
+		fileConverter.close();
+		fileConverter = null;
+
+		bytePrinter.close();
+		bytePrinter = null;
 		
-		Connected = false;
+		CloseConnection();
 	}
 }
