@@ -62,6 +62,11 @@ public class Settings {
 						{
 							mainPath += settings[i];					
 						}
+
+						if(!mainPath.endsWith("\\"))
+						{
+							mainPath+="\\";
+						}
 						
 						break;
 				}
@@ -70,6 +75,11 @@ public class Settings {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
+	}
+	
+	public String getPath()
+	{
+		return mainPath;
 	}
 	
 	public int getPort()

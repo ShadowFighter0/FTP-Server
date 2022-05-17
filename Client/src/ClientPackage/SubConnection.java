@@ -119,7 +119,8 @@ public class SubConnection
 
 		// Convert a File into byte[]
 		FileInputStream fileConverter = new FileInputStream(file);
-
+		fileConverter.read(bytes);
+		
 		// Create printer for bytes into the socket
 		DataOutputStream bytePrinter = new DataOutputStream(socket.getOutputStream());
 
@@ -152,7 +153,7 @@ public class SubConnection
 		CloseConnection();
 	}
 	
-	public void ReceiveFileFromServer() throws IOException
+	public void ReceiveFileFromServer(String path) throws IOException
 	{
 		//Read name file
 		System.out.print("Waiting for name file");
@@ -167,7 +168,7 @@ public class SubConnection
 		
 		//Create Handler 
 		DataInputStream byteReader = new DataInputStream(socket.getInputStream());
-		FileOutputStream byteToFileConverter = new FileOutputStream("D:\\Redes\\Client\\"+nameFile);  
+		FileOutputStream byteToFileConverter = new FileOutputStream(path+nameFile);
 		
 		socketWritter.println("Ok");
 		

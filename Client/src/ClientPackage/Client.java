@@ -362,7 +362,7 @@ public class Client {
 				}
 				
 				try {
-					subConnection.ReceiveFileFromServer();
+					subConnection.ReceiveFileFromServer(settings.getPath());
 					
 					message = reader.readLine();
 					
@@ -490,6 +490,20 @@ public class Client {
 				System.out.println("Error removing file.");
 			}
 			
+			break;
+			
+		case "RMD":
+			
+			message = reader.readLine();
+			
+			if(message.contains("250"))
+			{
+				System.out.println("Requested action successful");
+			}
+			else
+			{
+				System.out.println("Requested action not taken");
+			}
 			break;
 			
 		case "RNFR":

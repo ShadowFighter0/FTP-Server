@@ -62,6 +62,11 @@ public class Settings {
 							mainPath += settings[i];					
 						}
 						
+						if(!mainPath.endsWith("\\"))
+						{
+							mainPath+="\\";
+						}
+						
 						break;
 				}
 			}

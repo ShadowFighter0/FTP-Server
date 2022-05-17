@@ -26,21 +26,23 @@ public class Server {
 	
 	public static void main(String args[]) {
 
-		System.out.println("SERVER");	
+		System.out.println("SERVER");
 
 		settings = new Settings();
-		
+
 		mainPath = settings.getMainPath();
 		System.out.println(mainPath);
-		
-		ServerSocket sServ;
-		Socket socket;
-		
+
+		ServerSocket sServ = null;
+		Socket socket = null;
+
 		String data = "";
-		
-		try {
-			while (true) // The server will connect to a client
-			{
+
+		while (true) // The server will connect to a client
+		{
+			try {
+				CloseConnection(socket, sServ);
+
 				// Create the socket
 				sServ = new ServerSocket(settings.getPort());
 				subConnection = new SubConnection();
@@ -54,10 +56,10 @@ public class Server {
 				// Create input/output from the socket
 				reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				writter = new PrintWriter(socket.getOutputStream(), true);
-				
+
 				writter.flush();
 				writter.println("220"); // 220 -> connection is established
-				
+			
 				while (!end) // Current Connection
 				{
 					// Read the data sent by the client
@@ -67,23 +69,29 @@ public class Server {
 
 					CommandSelector(data);
 				}
+				CloseConnection(socket, sServ);
+			}
+
+			catch (Exception e) {	
 				
-				//Close the socket
-				reader.close();
-				writter.close();
-				socket.close();
-				sServ.close();
-				
-				end = false; 
-				
-			}			
-		} 
-		catch (IOException e) 
-		{
-			System.out.println(data);
-			System.out.println(e.getClass());
-			e.printStackTrace();
+			}
+
 		}
+	}
+	
+	private static void CloseConnection(Socket socket, ServerSocket sServ)
+	{
+		try {
+			// Close the socket
+			if (reader  != null)	reader.close();
+			if (writter != null) 	writter.close();
+			if (socket  != null) 	socket.close();
+			if (sServ   != null) 	sServ.close();
+			
+		}catch (Exception e) {
+
+		}
+		
 	}
 
 	private static void CommandSelector(String commandStr) throws IOException
@@ -122,7 +130,7 @@ public class Server {
 					
 					if (command.length > 1)
 					{
-						File f = new File(command[1]);
+						File f = new File(path() + command[1]);
 					}
 					else
 					{ 
@@ -145,7 +153,7 @@ public class Server {
 						
 						if (command.length > 1)
 						{
-							subConnection.SendListToClient(command[1]);
+							subConnection.SendListToClient(path() + command[1]);
 						}
 						else
 						{ 
@@ -369,12 +377,12 @@ public class Server {
 			case "RMD":
 				
 				try {
-					File file = new File (command[1]);
+					File file = new File (path() + command[1]);
 					
 					if(file.isDirectory())
 					{
 						file = null;
-						DeleteFolder(command[1]);
+						DeleteFolder(path() + command[1]);
 						writter.println("250");
 					}
 					else
@@ -390,20 +398,23 @@ public class Server {
 			case "RNFR":
 				
 				try {
-					File from = new File(command[1]);
+					File from = new File(path() + command[1]);
 					
-					writter.println("250");
+					writter.println("350");
 					command = reader.readLine().split(" ");
 					
-					File to = new File(command[1]);
+					if(command[0].toUpperCase().contains("RNTO"))
+					{
+						File to = new File(path()+command[1]);
 						
-					if(from.renameTo(to))
-					{
-						writter.println("250");
-					}
-					else
-					{
-						writter.println("553");
+						if(from.renameTo(to))
+						{
+							writter.println("250");
+						}
+						else
+						{
+							writter.println("553");
+						}	
 					}
 				}
 				catch(Exception e)

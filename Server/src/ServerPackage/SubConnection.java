@@ -159,7 +159,7 @@ public class SubConnection
 		socketWritter.println("Ok");
 		
 		System.out.println("Waiting for bytes");
-	 	byteReader.read(bytes, 0, bytes.length);
+	 	byteReader.read(bytes);
 		
 		System.out.println("Bytes received. Creating File");
 		byteToFileConverter.flush();
@@ -187,7 +187,7 @@ public class SubConnection
 
 		// Convert a File into byte[]
 		FileInputStream fileConverter = new FileInputStream(file);
-		System.out.println(fileConverter.read(bytes, 0, bytes.length));
+		fileConverter.read(bytes, 0, bytes.length);
 
 		// Create printer for bytes into the socket
 		DataOutputStream bytePrinter = new DataOutputStream(socket.getOutputStream());
