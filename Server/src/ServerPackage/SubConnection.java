@@ -21,13 +21,14 @@ public class SubConnection
 	BufferedReader socketReader;
 	PrintWriter socketWritter;
 	
+	final int sizeOfPacket = 5000;
+	
 	public boolean Connected = false;
 
 		
 	public boolean StartPasiveSubConnection (int port)
 	{
 		try {
-			
 			//Wait until the server connects
 			sServ = new ServerSocket(port);
 			socket = sServ.accept();
@@ -46,7 +47,6 @@ public class SubConnection
 		
 		return Connected;
 	}
-	
 	
 	public boolean ConnectActiveSubConnection (String port)
 	{
@@ -69,7 +69,7 @@ public class SubConnection
 		return Connected;
 	}
 	
-	private void CloseConnection()
+	public void CloseConnection()
 	{
 		try {
 			socket.close();
@@ -137,58 +137,91 @@ public class SubConnection
 		return message;
 
 	}
-	
 
 	public void ReceiveFileFromClient(String path) throws IOException
 	{
-		//Read name file
+		//Read and send name file
 		System.out.print("Waiting for name file");
 		String nameFile = socketReader.readLine();
 		System.out.println("  |  NameFile received:" + nameFile);
-		//Read byte Length
+		
+		//Read and send byte Length
 		System.out.print("Waiting fot File Lenght");
 		String lengthStr = socketReader.readLine();
+		int fileLength = Integer.parseInt(lengthStr);
 		System.out.println("  |  File Lenght received: " + lengthStr);
 		
-		byte[] bytes = new byte[Integer.parseInt(lengthStr)];
+		//Read and send number packages
+		System.out.print("Waiting fot number of packages");
+		String packagesStr = socketReader.readLine();
+		int packages = Integer.parseInt(packagesStr);
+		System.out.println("  |  Packages Number received: " + packages);
 		
-		//Create Handler 
+		//Prepare array of bytes to store the content
+		byte[] bytes = new byte[fileLength];
+		
+		//Create Handlers
 		DataInputStream byteReader = new DataInputStream(socket.getInputStream());
 		FileOutputStream byteToFileConverter = new FileOutputStream(path+nameFile);  
 		
+		//Send prepare to server
 		socketWritter.println("Ok");
 		
 		System.out.println("Waiting for bytes");
-	 	byteReader.read(bytes);
+	 	
+		for (int i = 0; i < packages; i++)
+		{			
+			System.out.println("Receving packet N"+i);
+			
+			//Create auxiliary array to store the packet
+			byte aux [] = new byte [sizeOfPacket];
+			
+			//Calculate the size of the packet
+			int size = (fileLength - ((i)*sizeOfPacket));
+			size = size > sizeOfPacket? sizeOfPacket:size;
+			
+			//Read the packet form the socket
+			byteReader.read(aux, 0, size);
+			System.out.println(size);
+			
+			//Transfer the packet info into the file array
+			for (int j = 0 ; j < size; j++)
+			{
+				bytes[(i*sizeOfPacket)+j] = aux[j];
+			}
+		}
 		
-		System.out.println("Bytes received. Creating File");
-		byteToFileConverter.flush();
+		//read end confirmation from server
+		socketReader.readLine();
+		
+		//Write the bite array into the file
 		byteToFileConverter.write(bytes);
 		System.out.println("File Created");
 		   
+		//Send confirmation to the server
 		socketWritter.flush();
 		socketWritter.println("OK");
 		
+		//Close Handlers
 		byteReader.close();
 		byteReader = null;
 		
 		byteToFileConverter.close();
 		byteToFileConverter = null;
 		
+		
 		CloseConnection();
 	}
+	
 	
 	public void SendFileToClient(String path) throws IOException
 	{
 		// Create File and array
 		File file = new File(path);
-		
-		byte[] bytes = new byte[(int) file.length()];
+		byte[] bytes = new byte[(int)file.length()];
 
 		// Convert a File into byte[]
-		FileInputStream fileConverter = new FileInputStream(file);
-		fileConverter.read(bytes, 0, bytes.length);
-
+		FileInputStream fileConverter = new FileInputStream(file);		
 		// Create printer for bytes into the socket
 		DataOutputStream bytePrinter = new DataOutputStream(socket.getOutputStream());
 
@@ -198,17 +231,48 @@ public class SubConnection
 
 		// Send length
 		socketWritter.flush();
-		socketWritter.println(bytes.length);
+		socketWritter.println(""+file.length());
+		
+		//Calculate and Send number of Packages
+		int packages = (int)file.length() / sizeOfPacket;
+		packages += ((int)file.length() % sizeOfPacket) == 0 ? 0:1; //Add a packet if there are still bytes
+		
+		System.out.println("Packages: " + packages);
+		
+		socketWritter.flush();
+		socketWritter.println(""+packages);
 
-		// Send bytes
-		socketReader.readLine();
+		socketReader.readLine(); //OK from server
 
 		System.out.println("Sending Bytes");
-		bytePrinter.flush();
-		bytePrinter.write(bytes);
+		fileConverter.read(bytes);
 
-		System.out.println("Upload Complete. Waiting for client confirmation");
+		for (int i = 0 ; i < packages; i++)
+		{			
+			System.out.println("Sending packet N"+i);
+			//Create aux array for stor the packet
+			byte[] aux = new byte[sizeOfPacket];
 
+			//Calculate the size of the packet
+			int size = ((int)file.length() - ((i)*sizeOfPacket));
+			size = size > sizeOfPacket? sizeOfPacket:size;
+			
+			//Fill the packet
+			for (int j = 0 ; j < size; j++)
+			{
+				aux[j] = bytes[(i*sizeOfPacket)+j];
+			}
+			
+			//Send the packet over socket
+			bytePrinter.flush();
+			bytePrinter.write(aux);
+		}
+		//End the sending of packets
+		socketWritter.println("END");
+		
+		System.out.println("Upload Complete. Waiting for server confirmation");
+		
+		//Confirmation from client 
 		String data = socketReader.readLine();
 
 		if (data.equals("OK"))
@@ -216,12 +280,12 @@ public class SubConnection
 		else
 			System.out.println("Transfer Status: Error");
 
+		//Close Sender
 		fileConverter.close();
-		fileConverter = null;
-
-		bytePrinter.close();
 		bytePrinter = null;
+		
 		
 		CloseConnection();
 	}
+	
 }

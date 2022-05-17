@@ -29,10 +29,10 @@ public class Server {
 		System.out.println("SERVER");
 
 		settings = new Settings();
-
 		mainPath = settings.getMainPath();
-		System.out.println(mainPath);
-
+		
+		users = new UserControl();
+		
 		ServerSocket sServ = null;
 		Socket socket = null;
 
@@ -46,9 +46,8 @@ public class Server {
 				// Create the socket
 				sServ = new ServerSocket(settings.getPort());
 				subConnection = new SubConnection();
-				users = new UserControl();
-				// Accept a connection and create the socket for the transmission with the
-				// client
+				
+				// Accept a connection and create the socket for the transmission with the client
 				System.out.println("Waiting for client to connect");
 				socket = sServ.accept();
 				System.out.println("New Client Accepted");
@@ -69,13 +68,8 @@ public class Server {
 
 					CommandSelector(data);
 				}
-				CloseConnection(socket, sServ);
 			}
-
-			catch (Exception e) {	
-				
-			}
-
+			catch (Exception e) {	e.printStackTrace();		}
 		}
 	}
 	
@@ -87,11 +81,9 @@ public class Server {
 			if (writter != null) 	writter.close();
 			if (socket  != null) 	socket.close();
 			if (sServ   != null) 	sServ.close();
+			if (subConnection.Connected) subConnection.CloseConnection();
 			
-		}catch (Exception e) {
-
-		}
-		
+		}catch (Exception e) {		}
 	}
 
 	private static void CommandSelector(String commandStr) throws IOException
@@ -127,17 +119,29 @@ public class Server {
 			case "LIST":
 					
 				try {
+					File f = null;
 					
 					if (command.length > 1)
 					{
-						File f = new File(path() + command[1]);
+						f = new File(path() + command[1]);
 					}
 					else
 					{ 
-						File f = new File(path());
+						f = new File(path());
 					}
 					
-					writter.println("150"); //Opening data connection
+					if (f.isDirectory())
+					{
+						writter.println("150"); //Opening data connection
+					}
+					else
+					{
+						writter.println("550");
+						System.out.println("Requested action not taken");
+						return;
+					}
+					
+					
 					
 					if (!AutoConnect(subConnection))
 					{
@@ -146,7 +150,7 @@ public class Server {
 					}
 					else
 					{
-						writter.println("ok");
+						writter.println("ok"); //Not an error, just skipping the client check
 					}
 					
 					try {
@@ -179,10 +183,7 @@ public class Server {
 						writter.println("450");
 						System.out.println("Requested file action not taken");
 					}
-					break;
 				}
-				
-				
 				
 				break;
 				
@@ -190,11 +191,17 @@ public class Server {
 				
 				writter.println("" + settings.getSubConnectionPort());
 				
-				if (subConnection.StartPasiveSubConnection(settings.getSubConnectionPort()))
-				{					
-					writter.println("227");
+				if(!subConnection.Connected)
+				{
+					if (subConnection.StartPasiveSubConnection(settings.getSubConnectionPort()))
+					{					
+						writter.println("227");
+					}
+				}else
+				{
+					System.out.println("SubConnection already created");
 				}
-				
+
 				break;
 				
 			case "STOR": //Store a file
@@ -204,7 +211,7 @@ public class Server {
 				// Confirmation message
 				writter.println("200"); //Ok Message
 					
-				try {	
+				try {
 			
 					subConnection.ReceiveFileFromClient(path());
 			
@@ -218,27 +225,34 @@ public class Server {
 				
 			case "USER":
 				
-				String username = command[1];
-				User user = users.userExists(username);
-
-				writter.println("331");
-				command = reader.readLine().split(" ");
-				
-				if (!command[0].toUpperCase().contains("PASS"))
+				try {
+					String username = command[1];
+					User user = users.userExists(username);
+					
+					writter.println("331");
+					
+					command = reader.readLine().split(" ");
+					
+					System.out.println("Server receives " + command[0] + command[1]);
+					
+					if (user == null)
+					{
+						writter.println("530");
+						break;
+					}
+					
+					if(user.getPassword().equals(command[1]))
+					{
+						writter.println("230");
+					}
+					else
+					{
+						writter.println("530");
+					}
+				}
+				catch(Exception e)
 				{
 					writter.println("530");
-					break;
-				}
-				
-				if (user == null)
-				{
-					writter.println("530");
-					break;
-				}
-				
-				if(user.getPassword().equals(command[1]))
-				{
-					writter.println("230");
 				}
 				
 				break;

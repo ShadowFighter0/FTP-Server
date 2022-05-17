@@ -238,14 +238,23 @@ public class Client {
 		case "CONN":
 			
 			try {
-				// Start connection
-				subConnection.StartActiveSubConnection(command[1]);
+				if(!subConnection.Connected)
+				{
+					// Start connection
+					subConnection.StartActiveSubConnection(command[1]);
+				}
+				else
+				{
+
+					System.out.println("SubConnection already running");
+				}
+				
 				
 				message = reader.readLine();
 				
 				// Get server response
 				if (message.equals("200"))
-					System.out.println("SubConnection Running");
+					System.out.println("The subConnection has been created with Active Mode");
 				else if (message.equals("503"))
 					System.out.println("SubConnection Error");
 				else
@@ -263,6 +272,7 @@ public class Client {
 			
 			try {
 				message = reader.readLine();
+				
 				if (message.contains("550"))
 				{
 					System.out.println("Error: File unavailable");
@@ -296,6 +306,10 @@ public class Client {
 					{
 						System.out.println("Requested action successful");
 					}
+					else
+					{
+						System.out.println("Error: Error during receiving list");
+					}
 				}
 			}
 			catch (IOException e1){			}
@@ -305,10 +319,19 @@ public class Client {
 		case "PASV":
 			
 				message = reader.readLine();
-				subConnection.ConnectPasiveSubConnection(message);
 				
-				if (reader.readLine().equals("227"))
-					System.out.println("Connection created with pasive mode");
+				if(!subConnection.Connected)
+				{
+					subConnection.ConnectPasiveSubConnection(message);
+					
+					if (reader.readLine().equals("227"))
+						System.out.println("Connection created with pasive mode");
+				}
+				else
+				{
+					System.out.println("SubConnection already created");
+				}
+				
 
 			break;
 
@@ -430,12 +453,29 @@ public class Client {
 			try {
 				if(reader.readLine().contains("331"))
 				{
-					System.out.println("Please entre the password (PASS + password)");
-					String passwordCommand = inputKeyboard.readLine();
+					String passwordCommand = "";
+					boolean check = false;
+					while(!check)
+					{
+						System.out.println("Please entre the password (PASS + <space> + password)");
+						passwordCommand = inputKeyboard.readLine();
+						
+						String[] passwordCommandCheck = passwordCommand.split(" ");
+						
+						if(passwordCommandCheck.length == 2)
+						{
+							check = true;
+						}
+						else {
+							System.out.println("Invalid command format.");
+						}
+					}
 					
 					writter.println(passwordCommand);
+					
 					message = reader.readLine();
-					if ( message.contains("230"))
+					
+					if (message.contains("230"))
 					{
 						System.out.println("You are now logged");
 					}
@@ -444,11 +484,11 @@ public class Client {
 						System.out.println("Log in error. Please try again");
 					}
 				}
+				else {
+					System.out.println("Log in error. Please try again");
+				}
 				
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (IOException e) {	}
 			
 			break;
 			
