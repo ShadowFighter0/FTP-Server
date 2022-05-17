@@ -11,10 +11,7 @@ public class Server {
 	
 	static String mainPath = "";
 	static String subPath = "";
-	public static String path()
-	{
-		return mainPath + subPath;
-	}
+	public static String path() { return mainPath + subPath;}
 	
 	static Settings settings;
 	
@@ -68,8 +65,11 @@ public class Server {
 
 					CommandSelector(data);
 				}
+				
+				System.out.println("Client disconnected ");
+
 			}
-			catch (Exception e) {	e.printStackTrace();		}
+			catch (Exception e) {	System.out.println("Client disconnected");	}
 		}
 	}
 	
@@ -287,13 +287,14 @@ public class Server {
 				try {
 					File f = new File(path() + command[1]);
 					
-					if (f.exists())
+					if (f.exists() && f.isFile())
 					{
 						writter.println("150");
 					}
 					else
 					{
 						writter.println("550");
+						return;
 					}					
 					
 					if (!AutoConnect(subConnection))
@@ -373,7 +374,7 @@ public class Server {
 				try {
 				File file = new File(path() + command[1]);
 				
-				if (file.delete())
+				if (file.delete() && file.isFile())
 				{
 					writter.println("250");
 				}

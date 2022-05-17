@@ -150,6 +150,7 @@ public class Client {
 						System.out.println("The File does not exist");
 						return false;
 					}
+					
 					return true;
 					
 				}catch (Exception e)
@@ -499,7 +500,7 @@ public class Client {
 				
 				if (message.contains("257")) 
 				{
-					System.out.println("Folder created");
+					System.out.println("Folder \"" + command[1] + "\" created");
 				}
 				else
 				{

@@ -141,21 +141,15 @@ public class SubConnection
 	public void ReceiveFileFromClient(String path) throws IOException
 	{
 		//Read and send name file
-		System.out.print("Waiting for name file");
 		String nameFile = socketReader.readLine();
-		System.out.println("  |  NameFile received:" + nameFile);
 		
 		//Read and send byte Length
-		System.out.print("Waiting fot File Lenght");
 		String lengthStr = socketReader.readLine();
 		int fileLength = Integer.parseInt(lengthStr);
-		System.out.println("  |  File Lenght received: " + lengthStr);
 		
 		//Read and send number packages
-		System.out.print("Waiting fot number of packages");
 		String packagesStr = socketReader.readLine();
 		int packages = Integer.parseInt(packagesStr);
-		System.out.println("  |  Packages Number received: " + packages);
 		
 		//Prepare array of bytes to store the content
 		byte[] bytes = new byte[fileLength];
@@ -166,13 +160,9 @@ public class SubConnection
 		
 		//Send prepare to server
 		socketWritter.println("Ok");
-		
-		System.out.println("Waiting for bytes");
-	 	
+			 	
 		for (int i = 0; i < packages; i++)
-		{			
-			System.out.println("Receving packet N"+i);
-			
+		{	
 			//Create auxiliary array to store the packet
 			byte aux [] = new byte [sizeOfPacket];
 			
@@ -182,7 +172,6 @@ public class SubConnection
 			
 			//Read the packet form the socket
 			byteReader.read(aux, 0, size);
-			System.out.println(size);
 			
 			//Transfer the packet info into the file array
 			for (int j = 0 ; j < size; j++)
@@ -237,19 +226,15 @@ public class SubConnection
 		int packages = (int)file.length() / sizeOfPacket;
 		packages += ((int)file.length() % sizeOfPacket) == 0 ? 0:1; //Add a packet if there are still bytes
 		
-		System.out.println("Packages: " + packages);
-		
 		socketWritter.flush();
 		socketWritter.println(""+packages);
 
 		socketReader.readLine(); //OK from server
 
-		System.out.println("Sending Bytes");
 		fileConverter.read(bytes);
 
 		for (int i = 0 ; i < packages; i++)
 		{			
-			System.out.println("Sending packet N"+i);
 			//Create aux array for stor the packet
 			byte[] aux = new byte[sizeOfPacket];
 
@@ -270,13 +255,11 @@ public class SubConnection
 		//End the sending of packets
 		socketWritter.println("END");
 		
-		System.out.println("Upload Complete. Waiting for server confirmation");
-		
 		//Confirmation from client 
 		String data = socketReader.readLine();
 
 		if (data.equals("OK"))
-			System.out.println("Transfer Status: Ok");
+			System.out.println("File Transmited Properly");
 		else
 			System.out.println("Transfer Status: Error");
 
