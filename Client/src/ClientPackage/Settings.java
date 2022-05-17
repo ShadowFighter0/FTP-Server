@@ -11,6 +11,7 @@ public class Settings {
 	private int port;
 	private int subConnectionPort;
 	private String mainPath;
+	private int packetSize;
 	
 	enum connectionMode {Active, Pasive};
 	private connectionMode mode;
@@ -21,7 +22,6 @@ public class Settings {
 		
 			File settingFile = new File(settingspath);
 			Scanner reader = new Scanner(settingFile);
-			System.out.println(settingFile);
 			
 			while (reader.hasNextLine())
 			{
@@ -69,12 +69,25 @@ public class Settings {
 						}
 						
 						break;
+						
+					case "PACKETSIZE":
+						
+						try {
+							packetSize = Integer.parseInt(settings[1]);
+						}
+						catch(Exception e)
+						{
+							System.out.println("Unable to read PACKETSIZE property from settings file. Please fix the problem and restart.");
+						}
+						break;
 				}
 			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		} catch (Exception e) {		}		
+	}
+	
+	public int getPacketSize()
+	{
+		return packetSize;
 	}
 	
 	public String getPath()

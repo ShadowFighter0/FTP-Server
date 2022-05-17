@@ -22,9 +22,14 @@ public class SubConnection
 	BufferedReader socketReader;
 	PrintWriter socketWritter; 
 	
-	final int sizeOfPacket = 5000;
+	int sizeOfPacket;
 	
 	boolean Connected = false;
+	
+	public SubConnection(int sizeOfPacket)
+	{
+		this.sizeOfPacket = sizeOfPacket;
+	}
 	
 	public void StartActiveSubConnection (String port)
 	{

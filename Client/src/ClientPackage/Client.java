@@ -37,7 +37,7 @@ public class Client {
 			inputKeyboard = new BufferedReader(new InputStreamReader(System.in));			
 
 			//Create SubConnection
-			subConnection = new SubConnection();
+			subConnection = new SubConnection(settings.getPacketSize());
 
 			if (reader.readLine().contains("220")) //220 -> Ok 
 			{
@@ -49,7 +49,7 @@ public class Client {
 			{
 				try {
 					// Get command from the keyboard
-					System.out.print("Write command (END to close the server): ");
+					System.out.print("Write command: ");
 					data = inputKeyboard.readLine();			
 					
 					String[] command = data.split(" ");
@@ -58,6 +58,11 @@ public class Client {
 					//Command Security
 					if (CommandChecker(command, subConnection))
 					{
+						if(command[0].contains("HELP"))
+						{
+							DisplayHelp();
+							continue;
+						}
 						// Send data to the server
 						writter.println(data);
 										
@@ -77,6 +82,27 @@ public class Client {
 			System.out.println("Shutting down the client");
 			
 		} catch (Exception e) {		}
+	}
+	
+	private static void DisplayHelp()
+	{
+		System.out.println();
+		System.out.println("CONN <port> -> Start the subconnection in server-active mode in the desire port number.\r\n"
+				+ "PASV -> start the subconnection in server-pasive mode using settings subconnection port number\r\n"
+				+ "LIST -> list all the contents inside the current active working-path\r\n"
+				+ "LIST <path> -> list all the contents of the path\r\n"
+				+ "STOR <filepath> -> Send the file to the server by the subconnection, the file will be stored in the working path\r\n"
+				+ "RETR <fileName> -> Download the file from the server and store it in the folder\r\n"
+				+ "PWD -> See the current working path\r\n"
+				+ "CWD -<path> -> Change the working path\r\n"
+				+ "User <username> -> Send the server the username in order to log in\r\n"
+				+ "MKD <foldername> -> Creates the folder inside the current working path\r\n"
+				+ "DELE <filename>  -> Delete a file inside the current path\r\n"
+				+ "RMD <foldername> -> Delete a folder inside the current folder \r\n"
+				+ "RNFR <fileName>  -> Select the file\r\n"
+				+ "CD -> return to the parent folder\r\n"
+				+ "if the command requires to create a subconnection the server and the client will create the new subconnection using the mode setted in the settings file.\r\n\""
+				+ "\r\\n");
 	}
 	
 	private static Socket WaitForConnection(int port) throws InterruptedException
@@ -101,6 +127,9 @@ public class Client {
 	{
 		switch (command[0])
 		{
+			case "HELP":
+				return true;
+			
 			case "CONN":
 				
 				if (subConnection.Connected)

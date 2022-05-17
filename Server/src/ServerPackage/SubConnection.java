@@ -21,10 +21,14 @@ public class SubConnection
 	BufferedReader socketReader;
 	PrintWriter socketWritter;
 	
-	final int sizeOfPacket = 5000;
+	int sizeOfPacket;
 	
 	public boolean Connected = false;
 
+	public SubConnection(int sizeOfPacket)
+	{
+		this.sizeOfPacket = sizeOfPacket;
+	}
 		
 	public boolean StartPasiveSubConnection (int port)
 	{

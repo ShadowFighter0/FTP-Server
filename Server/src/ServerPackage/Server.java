@@ -42,7 +42,7 @@ public class Server {
 
 				// Create the socket
 				sServ = new ServerSocket(settings.getPort());
-				subConnection = new SubConnection();
+				subConnection = new SubConnection(settings.getPacketSize());
 				
 				// Accept a connection and create the socket for the transmission with the client
 				System.out.println("Waiting for client to connect");
