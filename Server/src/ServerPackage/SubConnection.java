@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -76,14 +77,24 @@ public class SubConnection
 	public void CloseConnection()
 	{
 		try {
-			socket.close();
-			socket = null;
 			
-			socketReader.close();
-			socketReader = null;
+			if(socket != null)
+			{				
+				socket.close();
+				socket = null;
+			}
 			
-			socketWritter.close();
-			socketWritter = null;
+			if(socketReader!= null)
+			{
+				socketReader.close();
+				socketReader = null;				
+			}
+			
+			if (socketWritter != null)
+			{
+				socketWritter.close();
+				socketWritter = null;				
+			}
 			
 			if(sServ != null)
 			{
@@ -96,14 +107,34 @@ public class SubConnection
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			
+			Connected = true;
 		}
 	}
 	
-	public void SendListToClient(String path)
-	{		
-		socketWritter.println(ReadFolder(path, 0));
+	public void SendListToClient(String saveFilePath, String path)
+	{
+		try {
+			String message = ReadFolder(path, 0);
+
+			File listFile = new File(saveFilePath+"list.txt");
+			PrintWriter writter = new PrintWriter(listFile);
+			
+			writter.printf(message);
+			
+			writter.close();
+			listFile = null;
+			
+			SendFileToClient(saveFilePath+"list.txt");
+			
+			listFile = new File(saveFilePath+"list.txt");
+			listFile.delete();
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		socketWritter.println("END");
 		CloseConnection();
 	}
 	

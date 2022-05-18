@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 
 //The subConnection for active mode 
 public class SubConnection
@@ -70,17 +71,27 @@ public class SubConnection
 		}
 	}
 	
-	private void CloseConnection()
+	public void CloseConnection()
 	{
 		try {
-			socket.close();
-			socket = null;
 			
-			socketReader.close();
-			socketReader = null;
+			if(socket != null)
+			{				
+				socket.close();
+				socket = null;
+			}
 			
-			socketWritter.close();
-			socketWritter = null;
+			if(socketReader!= null)
+			{
+				socketReader.close();
+				socketReader = null;				
+			}
+			
+			if (socketWritter != null)
+			{
+				socketWritter.close();
+				socketWritter = null;				
+			}
 			
 			if(sServ != null)
 			{
@@ -98,24 +109,27 @@ public class SubConnection
 		}
 	}
 	
-	public void ReceiveList() throws IOException
-	{
-		String message = "";
-		while (true) 
-		{
-			message = socketReader.readLine();
+	public void ReceiveList(String savePath) throws IOException
+	{		
+		try {
+			ReceiveFileFromServer(savePath);
+			File file = new File(savePath+"list.txt");
 			
-			if (message.equals("END")) 
+			Scanner fileReader = new Scanner(file);
+			
+			System.out.println();
+			while (fileReader.hasNextLine())
 			{
-				break;
-			} 
-			else
-			{
-				System.out.println(message);
+				System.out.println(fileReader.nextLine());
 			}
+			
+			file.delete();
+			CloseConnection();
 		}
-		
-		CloseConnection();
+		catch (Exception e) {
+			e.printStackTrace();
+			CloseConnection();
+		}
 	}
 	
 	public void SendFileToServer(String path) throws IOException

@@ -87,7 +87,7 @@ public class Client {
 	private static void DisplayHelp()
 	{
 		System.out.println();
-		System.out.println("CONN <port> -> Start the subconnection in server-active mode in the desire port number.\r\n"
+		System.out.println("PRT <port> -> Start the subconnection in server-active mode in the desire port number.\r\n"
 				+ "PASV -> start the subconnection in server-pasive mode using settings subconnection port number\r\n"
 				+ "LIST -> list all the contents inside the current active working-path\r\n"
 				+ "LIST <path> -> list all the contents of the path\r\n"
@@ -101,8 +101,7 @@ public class Client {
 				+ "RMD <foldername> -> Delete a folder inside the current folder \r\n"
 				+ "RNFR <fileName>  -> Select the file\r\n"
 				+ "CD -> return to the parent folder\r\n"
-				+ "if the command requires to create a subconnection the server and the client will create the new subconnection using the mode setted in the settings file.\r\n\""
-				+ "\r\\n");
+				+ "if the command requires to create a subconnection the server and the client will create the new subconnection using the mode setted in the settings file.\r\n");
 	}
 	
 	private static Socket WaitForConnection(int port) throws InterruptedException
@@ -130,7 +129,7 @@ public class Client {
 			case "HELP":
 				return true;
 			
-			case "CONN":
+			case "PRT":
 				
 				if (subConnection.Connected)
 				{
@@ -265,7 +264,7 @@ public class Client {
 		
 		switch (command[0]) {
 		
-		case "CONN":
+		case "PRT":
 			
 			try {
 				if(!subConnection.Connected)
@@ -330,8 +329,8 @@ public class Client {
 						return;
 					}
 					
-					subConnection.ReceiveList();
-					
+					subConnection.ReceiveList(settings.getPath());
+				
 					if(reader.readLine().contains("226"))
 					{
 						System.out.println("Requested action successful");

@@ -93,7 +93,7 @@ public class Server {
 
 		switch (command[0]) {
 
-			case "CONN": //Connect active mode
+			case "PRT": //Connect active mode
 				
 				if (!subConnection.Connected)
 				{				
@@ -157,11 +157,11 @@ public class Server {
 						
 						if (command.length > 1)
 						{
-							subConnection.SendListToClient(path() + command[1]);
+							subConnection.SendListToClient(mainPath, path() + command[1]);
 						}
 						else
 						{ 
-							subConnection.SendListToClient(path());
+							subConnection.SendListToClient(mainPath,path());
 						}
 						
 						writter.println("226"); //Connection closing
